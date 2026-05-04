@@ -227,6 +227,57 @@ Object.keys(localStorage)
 // Should see: 'mock_products', 'mock_transactions', 'token', etc.
 ```
 
+## Security Features
+
+This boilerplate includes comprehensive security measures:
+
+### Content Security Policy (CSP)
+Protects against XSS and data injection attacks by controlling resource loading.
+
+```
+default-src 'self';
+script-src 'self' 'unsafe-inline';
+style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+frame-ancestors 'none';
+```
+
+### XSS Prevention
+Built-in sanitization utilities using DOMPurify:
+
+```typescript
+import { sanitizeHTML, sanitizeInput } from '@/utils/security'
+
+// Sanitize user-generated HTML
+const safeHTML = sanitizeHTML(userContent)
+
+// Sanitize text input
+const safeText = sanitizeInput(userInput)
+```
+
+### Security Headers
+- `X-Frame-Options: DENY` - Prevents clickjacking
+- `X-Content-Type-Options: nosniff` - Prevents MIME sniffing
+- `X-XSS-Protection: 1; mode=block` - Legacy XSS protection
+- `Referrer-Policy` - Controls referrer information
+
+### Authentication Security
+- Token format validation before API calls
+- Token expiration checking
+- Automatic redirect on invalid tokens
+- Secure auth service pattern (ready for httpOnly cookies)
+
+### Production Security Checklist
+When deploying to production:
+
+- [ ] Use HTTPS (required for secure cookies)
+- [ ] Migrate to httpOnly cookies (see AGENTS.md)
+- [ ] Enable CORS with specific origins only
+- [ ] Set up rate limiting on backend
+- [ ] Run `npm audit` and fix vulnerabilities
+- [ ] Test CSP in browser DevTools
+
+For detailed security documentation, see [AGENTS.md](./AGENTS.md).
+
 ## License
 
 MIT

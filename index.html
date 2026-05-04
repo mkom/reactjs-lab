@@ -4,6 +4,21 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- 
+      Content Security Policy (CSP)
+      - default-src 'self': Only load resources from same origin
+      - script-src 'self' 'unsafe-inline': Allow scripts from self and inline (needed for React)
+      - style-src 'self' 'unsafe-inline' https://fonts.googleapis.com: Allow styles from self, inline, and Google Fonts
+      - font-src 'self' https://fonts.gstatic.com: Allow fonts from self and Google Fonts CDN
+      - img-src 'self' data: https:: Allow images from self, data URIs, and HTTPS
+      - connect-src 'self': Only allow API calls to same origin
+      - frame-ancestors 'none': Prevent clickjacking (cannot be embedded in frames)
+      - base-uri 'self': Restrict base tag to same origin
+      - form-action 'self': Restrict form submissions to same origin
+    -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
+    
     <title>reactjs-lab</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
