@@ -4,10 +4,8 @@ import { SidebarLayout } from '@/components/SidebarLayout'
 import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { DashboardPage } from '@/pages/DashboardPage'
-import { ProductListPage } from '@/pages/ProductListPage'
-import { ProductFormPage } from '@/pages/ProductFormPage'
-import { TransactionPage } from '@/pages/TransactionPage'
-import { TransactionFormPage } from '@/pages/TransactionFormPage'
+import { ProfilePage } from '@/pages/ProfilePage'
+import { SettingsPage } from '@/pages/SettingsPage' 
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -32,11 +30,8 @@ export const AppRoutes = () => {
       >
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/products" element={<ProductListPage />} />
-        <Route path="/products/new" element={<ProductFormPage />} />
-        <Route path="/products/:id/edit" element={<ProductFormPage />} />
-        <Route path="/transactions" element={<TransactionPage />} />
-        <Route path="/transactions/new" element={<TransactionFormPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Route>
     </Routes>
   )

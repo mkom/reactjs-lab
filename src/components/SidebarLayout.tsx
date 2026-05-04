@@ -15,6 +15,7 @@ import {
   User,
   Bell,
   Search,
+  Sparkles
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -31,13 +32,13 @@ const navItems: NavItem[] = [
     icon: <LayoutDashboard className="h-5 w-5" />,
   },
   {
-    label: 'Products',
-    path: '/products',
+    label: 'Profile',
+    path: '/profile',
     icon: <Package className="h-5 w-5" />,
   },
   {
-    label: 'Transactions',
-    path: '/transactions',
+    label: 'Settings',
+    path: '/settings',
     icon: <ArrowLeftRight className="h-5 w-5" />,
   },
 ]
@@ -101,10 +102,10 @@ export const SidebarLayout = () => {
             )}
           >
             <div className="h-9 w-9 bg-slate-900 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Package className="h-5 w-5 text-white" />
+              <Sparkles className="h-5 w-5 text-white" />
             </div>
             <span className="font-semibold text-lg text-slate-900 whitespace-nowrap">
-              Inventory
+              Starter
             </span>
           </Link>
           
