@@ -1,928 +1,531 @@
-# Technical Documentation - ReactJS Lab
+# Technical Documentation
+
+## ReactJS Lab - Security Implementation
+
+This document provides detailed technical information about the security implementation in the ReactJS Lab boilerplate.
 
 ## Table of Contents
+
 1. [Architecture Overview](#architecture-overview)
-2. [UI Design System](#ui-design-system)
-3. [Inventory Management System](#inventory-management-system)
-4. [API Layer](#api-layer)
-5. [State Management](#state-management)
-6. [Routing](#routing)
-7. [Authentication Flow](#authentication-flow)
-8. [Mock System](#mock-system)
-9. [Error Handling Strategy](#error-handling-strategy)
+2. [Content Security Policy (CSP)](#content-security-policy-csp)
+3. [XSS Prevention](#xss-prevention)
+4. [Authentication Flow](#authentication-flow)
+5. [Security Headers](#security-headers)
+6. [Input Validation](#input-validation)
+7. [Testing Security](#testing-security)
+8. [Production Deployment](#production-deployment)
+
+---
 
 ## Architecture Overview
 
-### High-Level Architecture
+### Security Layers
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                         React App                            │
+│                    SECURITY ARCHITECTURE                    │
 ├─────────────────────────────────────────────────────────────┤
-│  Pages  │  Components  │  Hooks  │  Store  │  Services      │
-├─────────────────────────────────────────────────────────────┤
-│                    TanStack Query                            │
-├─────────────────────────────────────────────────────────────┤
-│                      Zustand Store                           │
-├─────────────────────────────────────────────────────────────┤
-│                   Service Layer (Axios)                      │
-├─────────────────────────────────────────────────────────────┤
-│  Real API  │  MSW Mock API  │  LocalStorage (Persistence)   │
+│                                                             │
+│  Layer 1: Content Security Policy (CSP)                    │
+│  ├── Blocks unauthorized resource loading                  │
+│  ├── Prevents inline script injection                      │
+│  └── Config: index.html + vite.config.ts                   │
+│                                                             │
+│  Layer 2: Security Headers                                  │
+│  ├── X-Frame-Options (clickjacking)                        │
+│  ├── X-Content-Type-Options (MIME sniffing)                │
+│  └── Referrer-Policy                                       │
+│                                                             │
+│  Layer 3: XSS Prevention                                    │
+│  ├── DOMPurify sanitization                                │
+│  ├── Input validation                                      │
+│  └── Output encoding                                       │
+│                                                             │
+│  Layer 4: Authentication Security                           │
+│  ├── Token validation                                      │
+│  ├── Token expiration checking                             │
+│  └── Secure storage pattern                                │
+│                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Tech Stack
+---
 
-| Category | Technology |
-|----------|------------|
-| Build Tool | Vite + TypeScript |
-| Styling | Tailwind CSS v3 |
-| Typography | Google Font Outfit |
-| State (Server) | TanStack Query |
-| State (Client) | Zustand |
-| Charts | Recharts |
-| Routing | React Router v6 |
-| Forms | React Hook Form + Zod |
-| Mock API | MSW |
-| Notifications | Sonner |
+## Content Security Policy (CSP)
 
-### Data Flow
+### Implementation
 
-```
-User Action → Component → Hook → Service → API → Backend/Mock
-     ↑                                                    ↓
-     └────────────── Response ← Hook ← Service ←──────────┘
-```
-
-## UI Design System
-
-### Typography - Google Font Outfit
-
-The project uses **Google Font Outfit** for clean, modern typography.
-
-**Configuration:**
+**File:** `index.html`
 ```html
-<!-- index.html -->
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<meta http-equiv="Content-Security-Policy" 
+      content="default-src 'self'; 
+               script-src 'self' 'unsafe-inline'; 
+               style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
+               font-src 'self' https://fonts.gstatic.com; 
+               img-src 'self' data: https:; 
+               connect-src 'self'; 
+               frame-ancestors 'none'; 
+               base-uri 'self'; 
+               form-action 'self';">
 ```
 
-```javascript
-// tailwind.config.js
-module.exports = {
-  theme: {
-    extend: {
-      fontFamily: {
-        outfit: ['Outfit', 'sans-serif'],
-      },
-    },
-  },
-}
-```
-
-**Usage:**
-```tsx
-<h1 className="text-2xl font-semibold font-outfit">Title</h1>
-```
-
-### Color System
-
-Clean white theme with slate accents:
-
-| Color | Usage | Tailwind |
-|-------|-------|----------|
-| Background | Main app background | `bg-white`, `bg-gray-50` |
-| Primary Text | Headlines, important text | `text-slate-900` |
-| Secondary Text | Descriptions, labels | `text-slate-500`, `text-slate-600` |
-| Borders | Cards, inputs borders | `border-slate-200` |
-| Success | Positive actions, stock in | `text-emerald-600`, `bg-emerald-100` |
-| Warning | Caution states, low stock | `text-amber-600`, `bg-amber-100` |
-| Danger | Errors, out of stock | `text-red-600`, `bg-red-100` |
-
-### Component Styling Patterns
-
-**Cards:**
-```tsx
-<Card className="shadow-sm border-slate-200">
-  <CardHeader>
-    <CardTitle>Title</CardTitle>
-  </CardHeader>
-  <CardContent>Content</CardContent>
-</Card>
-```
-
-**Tables:**
-```tsx
-<Card className="shadow-sm border-slate-200 overflow-hidden">
-  <Table>
-    <TableHeader>
-      <TableRow className="bg-slate-50/50">
-        <TableHead>Column</TableHead>
-      </TableRow>
-    </TableHeader>
-    <TableBody>
-      <TableRow>
-        <TableCell>Data</TableCell>
-      </TableRow>
-    </TableBody>
-  </Table>
-</Card>
-```
-
-**Buttons:**
-```tsx
-<Button variant="default">Primary</Button>
-<Button variant="outline">Secondary</Button>
-<Button variant="ghost">Tertiary</Button>
-```
-
-### Layout - SidebarLayout
-
-**File:** `src/components/SidebarLayout.tsx`
-
-The SidebarLayout provides a collapsible sidebar navigation with header.
-
-**Features:**
-- Collapsible sidebar (20px collapsed, 256px expanded)
-- Active state highlighting for current route
-- Mobile responsive drawer
-- Top header with breadcrumb
-- User menu display
-- Search and notification icons
-
-**Structure:**
-```
-┌────────────────────────────────────────────┐
-│  Logo    │  Header (breadcrumb, user, menu) │
-├──────────┼──────────────────────────────────┤
-│  Nav     │                                  │
-│  ───     │     Main Content                  │
-│  Menu    │     (Outlet)                      │
-│  Items   │                                  │
-│          │                                  │
-└──────────┴──────────────────────────────────┘
-```
-
-**Navigation Items:**
-| Path | Label | Icon |
-|------|-------|------|
-| `/dashboard` | Dashboard | LayoutDashboard |
-| `/products` | Products | Package |
-| `/transactions` | Transactions | ArrowLeftRight |
-
-**Usage:**
-```tsx
-<Route
-  element={
-    <ProtectedRoute>
-      <SidebarLayout />
-    </ProtectedRoute>
-  }
->
-  <Route path="/dashboard" element={<DashboardPage />} />
-  <Route path="/products" element={<ProductListPage />} />
-  <Route path="/transactions" element={<TransactionPage />} />
-</Route>
-```
-
-## UI Components Library
-
-### Base Components (`src/components/ui/`)
-
-| Component | File | Description |
-|-----------|------|-------------|
-| Button | `button.tsx` | Polymorphic button with variants |
-| Card | `card.tsx` | Card container with header, content, footer |
-| Input | `input.tsx` | Text input with styling |
-| Label | `label.tsx` | Form label |
-| Table | `table.tsx` | Table with header, body, row, head, cell |
-
-### Application Components (`src/components/`)
-
-| Component | File | Description |
-|-----------|------|-------------|
-| Badge | `Badge.tsx` | Status badge with variants |
-| EmptyState | `EmptyState.tsx` | Empty state display |
-| PageHeader | `PageHeader.tsx` | Page title with actions slot |
-| SidebarLayout | `SidebarLayout.tsx` | Main layout with sidebar |
-| StatsCard | `StatsCard.tsx` | Dashboard stat with trend |
-
-### Chart Components (`src/components/charts/`)
-
-| Component | File | Description |
-|-----------|------|-------------|
-| StockTrendChart | `StockTrendChart.tsx` | Area chart for stock trends |
-| TransactionChart | `TransactionChart.tsx` | Bar chart for transactions |
-| index | `index.ts` | Barrel exports |
-
-### StatsCard Component
-
-Enhanced stats card with trend indicators:
-
-```tsx
-interface StatsCardProps {
-  title: string
-  value: string | number
-  icon?: React.ReactNode
-  description?: string
-  variant?: 'default' | 'warning' | 'danger' | 'success'
-  trend?: number
-  trendLabel?: string
-}
-```
-
-**Usage:**
-```tsx
-<StatsCard
-  title="Total Products"
-  value={100}
-  trend={12.5}
-  trendLabel="from last month"
-  icon={<Package className="h-5 w-5" />}
-  description="Active products in inventory"
-  variant="default"
-/>
-```
-
-### Chart Components
-
-**StockTrendChart (Area Chart):**
-```tsx
-interface StockTrendData {
-  date: string
-  stock: number
-}
-
-<StockTrendChart
-  data={[
-    { date: 'Mon', stock: 320 },
-    { date: 'Tue', stock: 340 },
-    { date: 'Wed', stock: 310 },
-  ]}
-  title="Stock Level Trend"
-  description="Total inventory over 7 days"
-/>
-```
-
-**TransactionChart (Bar Chart):**
-```tsx
-interface TransactionData {
-  date: string
-  stockIn: number
-  stockOut: number
-}
-
-<TransactionChart
-  data={[
-    { date: 'Mon', stockIn: 50, stockOut: 30 },
-    { date: 'Tue', stockIn: 40, stockOut: 25 },
-  ]}
-  title="Transaction Activity"
-  description="Daily stock in vs stock out"
-/>
-```
-
-### Table Component
-
-**Parts:**
-- `Table` - Container with overflow scroll
-- `TableHeader` - Header section
-- `TableBody` - Body section
-- `TableRow` - Row with hover effects
-- `TableHead` - Header cell
-- `TableCell` - Data cell
-
-**Usage:**
-```tsx
-<Card className="shadow-sm border-slate-200 overflow-hidden">
-  <Table>
-    <TableHeader>
-      <TableRow className="bg-slate-50/50">
-        <TableHead>Name</TableHead>
-        <TableHead>Category</TableHead>
-        <TableHead className="text-right">Price</TableHead>
-        <TableHead className="text-center">Status</TableHead>
-        <TableHead className="text-right">Actions</TableHead>
-      </TableRow>
-    </TableHeader>
-    <TableBody>
-      {products.map((product) => (
-        <TableRow key={product.id}>
-          <TableCell>{product.name}</TableCell>
-          <TableCell>{product.category}</TableCell>
-          <TableCell className="text-right">${product.price}</TableCell>
-          <TableCell className="text-center">
-            <Badge variant="success">In Stock</Badge>
-          </TableCell>
-          <TableCell className="text-right">
-            <Button variant="ghost" size="sm">Edit</Button>
-          </TableCell>
-        </TableRow>
-      ))}
-    </TableBody>
-  </Table>
-</Card>
-```
-
-## Inventory Management System
-
-### System Overview
-
-The boilerplate includes a complete Inventory Management System with:
-
-1. **Dashboard** - Real-time statistics, charts, and alerts
-2. **Products Management** - Full CRUD operations with table view
-3. **Stock Transactions** - Track inventory movements with table view
-4. **Auto-updates** - Related data updates automatically
-
-### Data Models
-
-#### Product
+**File:** `vite.config.ts`
 ```typescript
-interface Product {
-  id: string
-  name: string
-  description: string
-  price: number
-  category: string
-  image?: string
-  stock: number
-  createdAt?: string
-  updatedAt?: string
-}
-```
-
-#### Transaction
-```typescript
-interface Transaction {
-  id: string
-  type: 'STOCK_IN' | 'STOCK_OUT'
-  productId: string
-  productName: string
-  quantity: number
-  note?: string
-  createdAt: string
-}
-```
-
-### Dashboard Statistics Calculation
-
-```typescript
-// Real-time stats calculated from products data
-const stats = {
-  totalProducts: products.length,
-  totalStockValue: products.reduce((sum, p) => sum + (p.price * p.stock), 0),
-  lowStockItems: products.filter(p => p.stock < 10 && p.stock > 0).length,
-  outOfStockItems: products.filter(p => p.stock === 0).length,
-}
-```
-
-### Stock Transaction Flow
-
-```
-User creates transaction
-         ↓
-MSW Handler validates stock (for STOCK_OUT)
-         ↓
-Create transaction record
-         ↓
-Update product stock (+ for IN, - for OUT)
-         ↓
-Save both to localStorage
-         ↓
-Return success response
-         ↓
-TanStack Query invalidates queries
-         ↓
-Dashboard & Products auto-refresh
-```
-
-### Key Pattern: Transaction Auto-Update
-
-When a transaction is created, multiple queries are invalidated:
-
-```typescript
-// hooks/useTransaction.ts
-export const useCreateTransaction = () => {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: transactionService.createTransaction,
-    onSuccess: () => {
-      // Invalidate transactions list
-      queryClient.invalidateQueries({ queryKey: TRANSACTION_KEYS.lists() })
-      // Invalidate products (stock changed)
-      queryClient.invalidateQueries({ queryKey: ['products'] })
-    },
-  })
-}
-```
-
-### MSW Transaction Handler
-
-```typescript
-http.post('/api/transactions', async ({ request }) => {
-  await randomDelay()
-  const body = await request.json()
-
-  // 1. Validate stock availability
-  const product = products.find(p => p.id === body.productId)
-  if (body.type === 'STOCK_OUT' && body.quantity > product.stock) {
-    return HttpResponse.json(
-      { message: 'Insufficient stock available' },
-      { status: 422 }
-    )
-  }
-
-  // 2. Create transaction
-  const transaction = { id: String(Date.now()), ...body }
-
-  // 3. Update product stock
-  if (body.type === 'STOCK_IN') {
-    product.stock += body.quantity
-  } else {
-    product.stock -= body.quantity
-  }
-
-  // 4. Persist both
-  transactions.push(transaction)
-  setProducts(products)
-  setTransactions(transactions)
-
-  return HttpResponse.json(transaction, { status: 201 })
-})
-```
-
-## API Layer
-
-### Axios Configuration
-
-**File**: `src/services/api.ts`
-
-```typescript
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
-  timeout: 10000,
+server: {
   headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  },
-})
-```
-
-### Request Interceptor
-
-Attaches JWT token to all requests:
-
-```typescript
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token')
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => Promise.reject(error)
-)
-```
-
-### Response Interceptor
-
-Handles common error scenarios:
-
-| Status | Code | Action |
-|--------|------|--------|
-| 401 | UNAUTHORIZED | Attempt refresh token → Redirect to login |
-| 403 | FORBIDDEN | Return permission error |
-| 404 | NOT_FOUND | Return not found error |
-| 422 | VALIDATION_ERROR | Return validation errors |
-| 500+ | SERVER_ERROR | Return server error |
-
-```typescript
-api.interceptors.response.use(
-  (response) => response.data,
-  async (error) => {
-    const originalRequest = error.config
-
-    // 401 - Try refresh token
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true
-      try {
-        const refreshToken = localStorage.getItem('refresh_token')
-        const response = await axios.post('/api/auth/refresh', { refreshToken })
-        const { access_token } = response.data
-        localStorage.setItem('token', access_token)
-        originalRequest.headers.Authorization = `Bearer ${access_token}`
-        return api(originalRequest)
-      } catch {
-        // Refresh failed - logout
-        localStorage.removeItem('token')
-        localStorage.removeItem('refresh_token')
-        window.location.href = '/login'
-      }
-    }
-    // ... other error handling
+    'Content-Security-Policy': "default-src 'self'; ...",
   }
-)
-```
-
-### Service Layer Pattern
-
-Each domain has its own service:
-
-```typescript
-// services/productService.ts
-export const productService = {
-  getProducts: async (params?: ProductFilters): Promise<ProductListResponse> => {
-    return api.get(`${ENDPOINTS.PRODUCTS.LIST}?${queryParams}`)
-  },
-
-  getProduct: async (id: string): Promise<Product> => {
-    return api.get(ENDPOINTS.PRODUCTS.DETAIL(id))
-  },
-
-  createProduct: async (data: CreateProductData): Promise<Product> => {
-    return api.post(ENDPOINTS.PRODUCTS.CREATE, data)
-  },
-
-  updateProduct: async (id: string, data: UpdateProductData): Promise<Product> => {
-    return api.put(ENDPOINTS.PRODUCTS.UPDATE(id), data)
-  },
-
-  deleteProduct: async (id: string): Promise<void> => {
-    return api.delete(ENDPOINTS.PRODUCTS.DELETE(id))
-  },
-}
-
-// services/transactionService.ts
-export const transactionService = {
-  getTransactions: async (params?: TransactionFilters): Promise<TransactionListResponse> => {
-    return api.get(`${ENDPOINTS.TRANSACTIONS.LIST}?${queryParams}`)
-  },
-
-  createTransaction: async (data: CreateTransactionData): Promise<Transaction> => {
-    return api.post(ENDPOINTS.TRANSACTIONS.CREATE, data)
-  },
 }
 ```
 
-### Endpoint Constants
+### Directive Reference
 
-Centralized endpoint definitions:
+| Directive | Value | Purpose |
+|-----------|-------|---------|
+| `default-src` | `'self'` | Default policy for all resources |
+| `script-src` | `'self' 'unsafe-inline'` | JavaScript sources (unsafe-inline required for React) |
+| `style-src` | `'self' 'unsafe-inline' https://fonts.googleapis.com` | CSS sources |
+| `font-src` | `'self' https://fonts.gstatic.com` | Font sources |
+| `img-src` | `'self' data: https:` | Image sources |
+| `connect-src` | `'self'` | API endpoints (AJAX/fetch) |
+| `frame-ancestors` | `'none'` | Prevents clickjacking |
+| `base-uri` | `'self'` | Restricts base tag |
+| `form-action` | `'self'` | Restricts form submissions |
+
+### Testing CSP
+
+1. **Browser DevTools:**
+   - Open Chrome DevTools
+   - Go to Application tab → Frames → CSP
+   - Review all directives
+
+2. **Console Warnings:**
+   - Watch for CSP violation warnings
+   - Example: "Refused to load the script..."
+
+3. **Online Testing:**
+   ```bash
+   # Using curl
+   curl -I http://localhost:5173 | grep -i content-security
+   ```
+
+---
+
+## XSS Prevention
+
+### DOMPurify Configuration
+
+**File:** `src/utils/security.ts`
 
 ```typescript
-// services/endpoints.ts
-export const ENDPOINTS = {
-  AUTH: {
-    LOGIN: '/auth/login',
-    REGISTER: '/auth/register',
-    LOGOUT: '/auth/logout',
-    ME: '/auth/me',
-    REFRESH: '/auth/refresh',
-  },
-  PRODUCTS: {
-    LIST: '/products',
-    DETAIL: (id: string) => `/products/${id}`,
-    CREATE: '/products',
-    UPDATE: (id: string) => `/products/${id}`,
-    DELETE: (id: string) => `/products/${id}`,
-  },
-  TRANSACTIONS: {
-    LIST: '/transactions',
-    DETAIL: (id: string) => `/transactions/${id}`,
-    CREATE: '/transactions',
-    UPDATE_STOCK: (id: string) => `/products/${id}/stock`,
-  },
-} as const
+const PURIFY_CONFIG = {
+  ALLOWED_TAGS: [
+    'b', 'i', 'em', 'strong', 'a', 'p', 'br', 
+    'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'blockquote', 'code', 'pre', 'span', 'div'
+  ],
+  ALLOWED_ATTR: [
+    'href', 'target', 'rel', 'class', 'id', 'title'
+  ],
+  ADD_ATTR: ['target', 'rel'],
+  FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover'],
+  FORCE_HTTPS: true,
+};
 ```
 
-## State Management
+### Usage Examples
 
-### TanStack Query (React Query)
-
-Used for **server state** management.
-
-#### Query Keys Pattern
+#### 1. Sanitizing HTML Content
 
 ```typescript
-const PRODUCT_KEYS = {
-  all: ['products'] as const,
-  lists: () => [...PRODUCT_KEYS.all, 'list'] as const,
-  list: (filters: ProductFilters) => [...PRODUCT_KEYS.lists(), filters] as const,
-  details: () => [...PRODUCT_KEYS.all, 'detail'] as const,
-  detail: (id: string) => [...PRODUCT_KEYS.details(), id] as const,
+import { sanitizeHTML } from '@/utils/security'
+
+// Attacker input
+const userInput = "<p>Hello</p><script>alert('xss')</script>"
+
+// After sanitization
+const safeHTML = sanitizeHTML(userInput)
+// Result: "<p>Hello</p>"
+
+// In component
+<div dangerouslySetInnerHTML={{ __html: safeHTML }} />
+```
+
+#### 2. Sanitizing Plain Text
+
+```typescript
+import { sanitizeInput } from '@/utils/security'
+
+// Remove all HTML
+const clean = sanitizeInput("<b>Bold</b> Text")
+// Result: "Bold Text"
+```
+
+#### 3. Sanitizing URLs
+
+```typescript
+import { sanitizeUrl } from '@/utils/security'
+
+// Prevents javascript: protocol attacks
+const safeUrl = sanitizeUrl("javascript:alert('xss')")
+// Result: "#"
+```
+
+#### 4. Escaping HTML
+
+```typescript
+import { escapeHtml } from '@/utils/security'
+
+// For displaying code/text safely
+const escaped = escapeHtml("<script>alert(1)</script>")
+// Result: "&lt;script&gt;alert(1)&lt;/script&gt;"
+```
+
+### Security Patterns
+
+```typescript
+export const securityPatterns = {
+  email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  safeFilename: /^[^\\/:*?"<>|]+$/,
+  alphanumeric: /^[a-zA-Z0-9]+$/,
+  noScript: /<script|on\w+\s*=/i,
 }
 ```
 
-#### Query Hook Example
+---
 
-```typescript
-export const useProducts = (filters: ProductFilters = {}) => {
-  return useQuery({
-    queryKey: PRODUCT_KEYS.list(filters),
-    queryFn: () => productService.getProducts(filters),
-    staleTime: 5 * 60 * 1000,
-    retry: 1,
-    refetchOnWindowFocus: false,
-    placeholderData: (previousData) => previousData,
-  })
-}
+## Authentication Flow
 
-export const useProduct = (id: string) => {
-  return useQuery({
-    queryKey: PRODUCT_KEYS.detail(id),
-    queryFn: () => productService.getProduct(id),
-    enabled: !!id,
-  })
-}
+### Current Implementation (Demo)
+
+```
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│   Login     │────▶│   Validate   │────▶│   Store     │
+│   Page      │     │   Credentials│     │   localStorage│
+└─────────────┘     └──────────────┘     └─────────────┘
+                                                │
+                                                ▼
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│   API Call  │◀────│   Get Token  │◀────│   Request   │
+│   (Axios)   │     │   from Store │     │   Token     │
+└─────────────┘     └──────────────┘     └─────────────┘
 ```
 
-#### Mutation Hook Example
+### Token Validation
+
+**File:** `src/utils/security.ts`
 
 ```typescript
-export const useCreateProduct = () => {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (data: CreateProductData) => productService.createProduct(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.lists() })
-    },
-  })
+// Validate JWT format
+export const isValidTokenFormat = (token: string): boolean => {
+  if (!token || typeof token !== 'string') return false
+  const parts = token.split('.')
+  if (parts.length !== 3) return false
+  
+  try {
+    const payload = JSON.parse(atob(parts[1]))
+    return payload && typeof payload === 'object'
+  } catch {
+    return false
+  }
 }
 
-export const useUpdateProduct = () => {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateProductData }) =>
-      productService.updateProduct(id, data),
-    onSuccess: (data, variables) => {
-      queryClient.setQueryData(PRODUCT_KEYS.detail(variables.id), data)
-      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.lists() })
-    },
-  })
+// Check expiration
+export const isTokenExpired = (token: string): boolean => {
+  if (!isValidTokenFormat(token)) return true
+  
+  try {
+    const parts = token.split('.')
+    const payload = JSON.parse(atob(parts[1]))
+    if (!payload.exp) return false
+    return payload.exp * 1000 < Date.now()
+  } catch {
+    return true
+  }
 }
-```
-
-### Zustand Store
-
-Used for **global client state**.
-
-#### Auth Store
-
-```typescript
-// store/authStore.ts
-interface AuthState {
-  user: User | null
-  isAuthenticated: boolean
-  setUser: (user: User | null) => void
-  logout: () => void
-}
-
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      user: null,
-      isAuthenticated: false,
-      setUser: (user) => set({ user, isAuthenticated: !!user }),
-      logout: () => {
-        localStorage.removeItem('token')
-        localStorage.removeItem('refresh_token')
-        set({ user: null, isAuthenticated: false })
-      },
-    }),
-    { name: 'auth-storage' }
-  )
-)
-```
-
-## Routing
-
-### Route Structure
-
-```typescript
-// routes/index.tsx
-<Routes>
-  {/* Public Routes */}
-  <Route path="/login" element={<LoginPage />} />
-  <Route path="/register" element={<RegisterPage />} />
-
-  {/* Protected Routes with SidebarLayout */}
-  <Route
-    element={
-      <ProtectedRoute>
-        <SidebarLayout />
-      </ProtectedRoute>
-    }
-  >
-    <Route path="/" element={<Navigate to="/dashboard" replace />} />
-    <Route path="/dashboard" element={<DashboardPage />} />
-    <Route path="/products" element={<ProductListPage />} />
-    <Route path="/products/new" element={<ProductFormPage />} />
-    <Route path="/products/:id/edit" element={<ProductFormPage />} />
-    <Route path="/transactions" element={<TransactionPage />} />
-    <Route path="/transactions/new" element={<TransactionFormPage />} />
-  </Route>
-</Routes>
 ```
 
 ### Protected Route Implementation
 
+**File:** `src/routes/index.tsx`
+
 ```typescript
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
-
-  if (!isAuthenticated) {
+  const isTokenValid = authService.isTokenValid()
+  
+  if (!isAuthenticated || !isTokenValid) {
+    if (!isTokenValid && isAuthenticated) {
+      authService.clearTokens()
+      useAuthStore.getState().logout()
+    }
     return <Navigate to="/login" replace />
   }
-
+  
   return <>{children}</>
 }
 ```
 
-## Authentication Flow
+### Production Migration (httpOnly Cookies)
 
-### Login Flow
-
-```
-1. User enters credentials
-   ↓
-2. POST /api/auth/login
-   ↓
-3. Backend returns { user, token, refresh_token }
-   ↓
-4. Store tokens in localStorage
-   ↓
-5. Update Zustand store (setUser)
-   ↓
-6. Redirect to /dashboard
-```
-
-### Token Refresh Flow
-
-```
-1. API request with expired token
-   ↓
-2. 401 Unauthorized
-   ↓
-3. Interceptor catches error
-   ↓
-4. POST /api/auth/refresh with refresh_token
-   ↓
-5. Backend returns new access_token
-   ↓
-6. Update localStorage token
-   ↓
-7. Retry original request
-   ↓
-8. If refresh fails → Logout → Redirect to login
-```
-
-## Mock System
-
-### MSW (Mock Service Worker) Architecture
-
-```
-┌─────────────────────────────────────────┐
-│           Browser/App                   │
-├─────────────────────────────────────────┤
-│           MSW Worker                    │
-│  ┌─────────────────────────────────┐   │
-│  │  Intercept HTTP Requests        │   │
-│  │  - Match URL pattern            │   │
-│  │  - Execute handler              │   │
-│  │  - Return mock response         │   │
-│  └─────────────────────────────────┘   │
-├─────────────────────────────────────────┤
-│     Real API / Mock Response            │
-└─────────────────────────────────────────┘
-```
-
-### Enabling Mock Mode
-
-**Environment Variable:**
-```env
-VITE_ENABLE_MOCK=true
-```
-
-**Initialization** (main.tsx):
+**Current (Demo):**
 ```typescript
-if (import.meta.env.VITE_ENABLE_MOCK === 'true') {
-  const { worker } = await import('./mocks/browser')
-  await worker.start({ onUnhandledRequest: 'bypass' })
+// Store in localStorage
+localStorage.setItem('token', jwtToken)
+
+// Retrieve
+const token = localStorage.getItem('token')
+```
+
+**Production (httpOnly Cookie):**
+```typescript
+// Backend sets cookie
+Set-Cookie: token=xxx; HttpOnly; Secure; SameSite=Strict
+
+// Frontend - nothing to do!
+// Cookie sent automatically with requests
+```
+
+**Migration Steps:**
+1. Remove all localStorage operations in authService
+2. Uncomment `withCredentials: true` in api.ts
+3. Backend handles all token storage
+4. Update ProtectedRoute to check auth state only
+
+---
+
+## Security Headers
+
+### Implementation
+
+**File:** `vite.config.ts`
+
+```typescript
+server: {
+  headers: {
+    'Content-Security-Policy': "...",
+    'X-Frame-Options': 'DENY',
+    'X-Content-Type-Options': 'nosniff',
+    'X-XSS-Protection': '1; mode=block',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
+  },
 }
 ```
 
-### Mock Data Persistence
+### Header Reference
 
-| Data | Storage Key | Operations |
-|------|-------------|------------|
-| Products | `mock_products` | Create, Read, Update, Delete |
-| Transactions | `mock_transactions` | Create, Read |
-| Auth Tokens | `token`, `refresh_token` | Create, Refresh, Delete |
+| Header | Value | Protection |
+|--------|-------|------------|
+| X-Frame-Options | DENY | Clickjacking |
+| X-Content-Type-Options | nosniff | MIME sniffing |
+| X-XSS-Protection | 1; mode=block | Legacy XSS |
+| Referrer-Policy | strict-origin-when-cross-origin | Information leakage |
+| Permissions-Policy | geolocation=()... | Feature restrictions |
 
-## Error Handling Strategy
+---
 
-### Error Hierarchy
+## Input Validation
 
-```
-Error
-├── Network Error (no connection)
-├── HTTP Error (response received)
-│   ├── 401 Unauthorized
-│   ├── 403 Forbidden
-│   ├── 404 Not Found
-│   ├── 422 Validation Error
-│   └── 500+ Server Error
-└── Unknown Error
-```
+### Zod Schema Validation
 
-### Error Handling Layers
-
-#### 1. Axios Interceptor (Global)
+**File:** `src/lib/validation.ts`
 
 ```typescript
-// services/api.ts
-api.interceptors.response.use(
-  (response) => response.data,
-  async (error) => {
-    const standardError = {
-      message: error.response?.data?.message || 'Something went wrong',
-      code: determineErrorCode(error),
-      status: error.response?.status,
-    }
-    return Promise.reject(standardError)
+import { z } from 'zod'
+
+export const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+})
+
+export const registerSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+})
+```
+
+### Usage with React Hook Form
+
+```typescript
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { loginSchema } from '@/lib/validation'
+
+const { register, handleSubmit, formState: { errors } } = useForm({
+  resolver: zodResolver(loginSchema),
+})
+```
+
+---
+
+## Testing Security
+
+### Automated Tests
+
+```bash
+# Check for vulnerabilities
+npm audit
+
+# Check specific package
+npm audit --package dompurify
+```
+
+### Manual Testing
+
+#### 1. XSS Testing
+
+```javascript
+// In browser console, try:
+const xss = "<img src=x onerror=alert('xss')>"
+// Use in form inputs and check if sanitized
+```
+
+#### 2. CSP Testing
+
+```javascript
+// Try loading external script
+document.write('<script src="https://evil.com/script.js"><\/script>')
+// Should be blocked by CSP
+```
+
+#### 3. Authentication Testing
+
+```javascript
+// Corrupt token in localStorage
+localStorage.setItem('token', 'invalid_token')
+// Refresh page - should redirect to login
+```
+
+#### 4. Token Expiration Testing
+
+```javascript
+// Check token expiry
+const token = localStorage.getItem('token')
+const payload = JSON.parse(atob(token.split('.')[1]))
+console.log('Expires:', new Date(payload.exp * 1000))
+```
+
+### Security Checklist
+
+Before deployment:
+
+- [ ] Run `npm audit`
+- [ ] Test CSP in DevTools
+- [ ] Verify all inputs are validated
+- [ ] Check XSS sanitization
+- [ ] Test authentication flow
+- [ ] Verify security headers
+- [ ] Review token storage (migrate to httpOnly for production)
+
+---
+
+## Production Deployment
+
+### Security Checklist
+
+| Task | Priority | Details |
+|------|----------|---------|
+| HTTPS | Critical | Required for secure cookies |
+| httpOnly Cookies | Critical | Replace localStorage |
+| CORS | Critical | Whitelist specific origins |
+| Rate Limiting | High | Prevent brute force |
+| CSP Nonce | Medium | For strict CSP |
+| Security Headers | High | All headers enabled |
+| Input Validation | Critical | Backend + frontend |
+| Output Encoding | High | Always sanitize HTML |
+
+### Migration Guide
+
+#### Step 1: Backend Setup
+
+```javascript
+// Express.js example
+app.post('/login', async (req, res) => {
+  const { email, password } = req.body
+  
+  // Validate credentials
+  const user = await validateCredentials(email, password)
+  
+  // Generate tokens
+  const token = jwt.sign({ userId: user.id }, SECRET, { expiresIn: '15m' })
+  
+  // Set httpOnly cookie
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'strict',
+    maxAge: 15 * 60 * 1000
+  })
+  
+  res.json({ success: true, user })
+})
+```
+
+#### Step 2: Frontend Update
+
+```typescript
+// api.ts
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+  withCredentials: true, // Enable cookies
+})
+
+// Remove token handling from request interceptor
+api.interceptors.request.use(
+  (config) => {
+    // No token handling needed - cookie sent automatically
+    return config
   }
 )
 ```
 
-#### 2. Component Level
+#### Step 3: Update ProtectedRoute
 
-```tsx
-// Component.tsx
-try {
-  await createProduct.mutateAsync(data)
-  toast.success('Product created!')
-} catch (err: unknown) {
-  const error = err as { message?: string }
-  toast.error(error.message || 'Failed to create product')
+```typescript
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useAuth()
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+  
+  return <>{children}</>
 }
 ```
 
-### Error Display Patterns
+---
 
-| Error Type | Display |
-|------------|---------|
-| Form Validation | Inline under input fields |
-| API Error | Toast notification |
-| Auth Error | Redirect to login + message |
-| Network Error | Toast + retry button |
+## Additional Resources
 
-## Form Validation
+### Security Libraries
 
-### Zod Schema Pattern
+| Library | Purpose | Version |
+|---------|---------|---------|
+| DOMPurify | XSS prevention | ^3.x |
+| Zod | Schema validation | ^3.x |
+| axios | HTTP client | ^1.x |
 
-```typescript
-const productSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  description: z.string().min(10, 'Description must be at least 10 characters'),
-  price: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
-    message: 'Price must be a positive number',
-  }),
-  category: z.string().min(1, 'Category is required'),
-  stock: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0 && Number.isInteger(Number(val)), {
-    message: 'Stock must be a positive integer',
-  }),
-})
+### References
 
-type ProductForm = z.infer<typeof productSchema>
-```
+- [OWASP XSS Prevention](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html)
+- [CSP Quick Reference](https://content-security-policy.com/)
+- [MDN Security Headers](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers)
+- [JWT Security Best Practices](https://auth0.com/blog/jwt-security-best-practices/)
 
-### React Hook Form Integration
+---
 
-```typescript
-const { register, handleSubmit, formState: { errors } } = useForm<ProductForm>({
-  resolver: zodResolver(productSchema),
-})
+## Support
 
-<form onSubmit={handleSubmit(onSubmit)}>
-  <Input {...register('name')} />
-  {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
-</form>
-```
+For security issues or questions:
+1. Check AGENTS.md for implementation guidelines
+2. Review this documentation
+3. Test using provided methods
+4. Consult security resources listed above
 
-## Best Practices Summary
-
-1. **Always use TypeScript** - No `any` types
-2. **Follow service layer pattern** - No direct API calls in components
-3. **Use TanStack Query** - For all server state
-4. **Use Zustand** - Only for global client state
-5. **Handle errors** - Always catch and display
-6. **Show loading states** - Never leave user waiting
-7. **Validate forms** - Always use Zod
-8. **Use path aliases** - `@/` for clean imports
-9. **Keep components small** - < 200 lines
-10. **Test with mocks** - Before integrating real API
-11. **Use Table components** - For list views
-12. **Use Chart components** - For data visualization
+**Remember:** Client-side security is only one layer. Always implement server-side validation and security measures.

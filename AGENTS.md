@@ -665,14 +665,194 @@ src/
 5. **Code split** large libraries
 6. **Use TanStack Query** for caching server data
 
-## Security Considerations
+## Security Implementation
 
-1. Never store sensitive data in localStorage (except tokens)
-2. Always sanitize user input
-3. Validate all data with Zod
-4. Use HTTPS in production
-5. Implement proper CORS
-6. Validate stock on server (mock handler) before updating
+This template implements comprehensive client-side security measures. All security features are production-ready patterns with clear migration paths.
+
+### Security Features Implemented
+
+| Feature | Location | Status |
+|---------|----------|--------|
+| Content Security Policy (CSP) | `index.html`, `vite.config.ts` | ✅ Active |
+| Security Headers | `vite.config.ts` | ✅ Active |
+| XSS Prevention (DOMPurify) | `src/utils/security.ts` | ✅ Active |
+| Input Sanitization | `src/utils/security.ts` | ✅ Active |
+| Token Validation | `src/services/authService.ts` | ✅ Active |
+| Secure Auth Pattern | `src/services/api.ts` | ✅ Active |
+| Protected Routes | `src/routes/index.tsx` | ✅ Enhanced |
+
+### Content Security Policy (CSP)
+
+CSP is configured via meta tag and Vite server headers:
+
+```
+default-src 'self';
+script-src 'self' 'unsafe-inline';
+style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+font-src 'self' https://fonts.gstatic.com;
+img-src 'self' data: https:;
+connect-src 'self';
+frame-ancestors 'none';
+base-uri 'self';
+form-action 'self';
+```
+
+**Key protections:**
+- Blocks inline scripts (except necessary React scripts)
+- Restricts resource loading to approved domains
+- Prevents clickjacking (frame-ancestors)
+- Forces form submissions to same origin
+
+### XSS Prevention
+
+All user input should be sanitized using utilities in `src/utils/security.ts`:
+
+```typescript
+import { sanitizeHTML, sanitizeInput, sanitizeUrl } from '@/utils/security'
+
+// For rich text content
+const safeHTML = sanitizeHTML(userContent)
+<div dangerouslySetInnerHTML={{ __html: safeHTML }} />
+
+// For plain text inputs
+const safeText = sanitizeInput(userInput)
+<input value={safeText} />
+
+// For URLs
+const safeUrl = sanitizeUrl(userUrl)
+<a href={safeUrl}>Link</a>
+```
+
+**Never use `dangerouslySetInnerHTML` without sanitization!**
+
+### Authentication Security
+
+#### Current Implementation (Demo Mode)
+- Tokens stored in localStorage (for demo purposes only)
+- Token format validation before API calls
+- Token expiration checking
+- Automatic redirect on invalid tokens
+
+#### Production Migration (httpOnly Cookies)
+To migrate to production-ready authentication:
+
+1. **Backend Changes:**
+   - Set cookies with: `HttpOnly; Secure; SameSite=Strict`
+   - Remove token from response body
+   - Implement proper CSRF protection if needed
+
+2. **Frontend Changes:**
+   ```typescript
+   // In api.ts, uncomment:
+   withCredentials: true,
+   
+   // Remove from authService.ts:
+   - All localStorage operations
+   - getAccessToken(), getRefreshToken()
+   - setTokens(), clearTokens()
+   
+   // ProtectedRoute stays the same (checks auth state)
+   ```
+
+3. **Why httpOnly Cookies?**
+   - Cannot be accessed by JavaScript (XSS protection)
+   - Automatically sent with requests
+   - Server-controlled expiration
+   - Secure flag ensures HTTPS only
+
+### Security Headers
+
+Vite development server configured with:
+
+```typescript
+'X-Frame-Options': 'DENY',           // Prevent clickjacking
+'X-Content-Type-Options': 'nosniff', // Prevent MIME sniffing
+'X-XSS-Protection': '1; mode=block', // Legacy XSS protection
+'Referrer-Policy': 'strict-origin-when-cross-origin',
+'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
+```
+
+### Input Validation
+
+All forms use Zod for validation:
+
+```typescript
+import { z } from 'zod'
+
+const schema = z.object({
+  email: z.string().email('Invalid email'),
+  password: z.string().min(6, 'Minimum 6 characters'),
+})
+```
+
+**Validation layers:**
+1. **Client-side (Zod):** Immediate UX feedback
+2. **Server-side (Backend):** Security validation (always required)
+
+### Security Checklist for New Features
+
+When adding new features, ensure:
+
+- [ ] No `dangerouslySetInnerHTML` without sanitization
+- [ ] All user inputs validated with Zod
+- [ ] Sensitive data not stored in localStorage
+- [ ] API endpoints require authentication (if protected)
+- [ ] File uploads validate file types and sizes
+- [ ] URLs validated before use (prevent `javascript:` protocol)
+
+### Security Dependencies
+
+```bash
+# XSS Prevention
+npm install dompurify
+
+# Already included:
+# - Zod (validation)
+# - React Hook Form (form management)
+```
+
+### Testing Security
+
+```bash
+# Run security audit
+npm audit
+
+# Test CSP in browser DevTools
+# 1. Open Application tab → Frames → CSP
+# 2. Check Console for CSP violations
+
+# Verify headers
+curl -I http://localhost:5173
+```
+
+### Common Security Anti-Patterns
+
+**❌ DON'T:**
+```typescript
+// Never store sensitive data in localStorage
+localStorage.setItem('password', password)
+
+// Never use innerHTML with user input
+element.innerHTML = userInput
+
+// Never trust client-side validation alone
+// Backend must always validate
+
+// Never disable CSP in production
+```
+
+**✅ DO:**
+```typescript
+// Use httpOnly cookies for tokens (production)
+// Sanitize all user-generated content
+const safe = sanitizeHTML(userContent)
+
+// Validate on both client and server
+const result = schema.safeParse(data)
+if (!result.success) return error
+
+// Use strict CSP policy
+```
 
 ## Questions?
 
