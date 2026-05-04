@@ -912,6 +912,48 @@ const { register, handleSubmit, formState: { errors } } = useForm<ProductForm>({
 </form>
 ```
 
+## Feature Generator
+
+### Overview
+
+Use the built-in generator to create new features quickly:
+
+```bash
+npm run generate:feature <feature-name>
+```
+
+Example:
+```bash
+npm run generate:feature customer
+npm run generate:feature invoice
+```
+
+### Generated Files
+
+| File | Purpose |
+|------|---------|
+| `src/services/{feature}Service.ts` | API layer (GET, POST, PUT, DELETE) |
+| `src/hooks/use{Feature}.ts` | TanStack Query hooks |
+| `src/pages/{Feature}ListPage.tsx` | List page with table |
+| `src/pages/{Feature}FormPage.tsx` | Create/edit form |
+
+### Pattern
+
+The generator follows the standard Service → Hook → Page pattern:
+
+```
+FeatureService → useFeature (hooks) → FeatureListPage/FeatureFormPage
+```
+
+### Next Steps
+
+After generating:
+1. Update routes in `src/routes/index.tsx`
+2. Add menu item in `src/components/SidebarLayout.tsx`
+3. Implement API calls in service
+4. Update endpoints in `src/services/endpoints.ts`
+5. Add MSW handler in `src/mocks/handlers.ts`
+
 ## Best Practices Summary
 
 1. **Always use TypeScript** - No `any` types
