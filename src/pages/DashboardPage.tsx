@@ -7,7 +7,7 @@ import {
   Sparkles, 
   Rocket, 
   BookOpen, 
-  Github,
+  Code2,
   ArrowRight 
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -84,8 +84,8 @@ export const DashboardPage = () => {
         <Card className="hover:border-slate-300 transition-colors">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <Github className="h-5 w-5 text-slate-700" />
-              Contribute
+              <Code2 className="h-5 w-5 text-slate-700" />
+              Customizable
             </CardTitle>
           </CardHeader>
           <CardContent>
