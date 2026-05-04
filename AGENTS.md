@@ -1,3 +1,89 @@
+# ReactJS Starter Template
+
+This is a **React TypeScript Starter Template** designed for building scalable web applications with a clean architecture. It features a modern clean white UI design with Google Font Outfit.
+
+## Quick Start
+
+1. Clone this repository
+2. Run `npm install`
+3. Copy `.env.example` to `.env`
+4. Run `npm run dev`
+
+**Test Credentials:**
+- Email: `user@example.com`
+- Password: `password`
+
+## Project Structure
+
+This starter includes:
+
+| Feature | Location |
+|---------|----------|
+| Auth System | `src/services/authService.ts`, `src/hooks/useAuth.ts` |
+| User Profile | `src/pages/ProfilePage.tsx` |
+| Settings | `src/pages/SettingsPage.tsx` (theme toggle, language, notifications) |
+| Base UI Components | `src/components/ui/` |
+| Layout | `src/components/SidebarLayout.tsx` |
+| Chart Components | `src/components/charts/` (Recharts) |
+
+## Adding New Features
+
+Use the built-in generator:
+
+```bash
+npm run generate:feature <feature-name>
+```
+
+Example:
+```bash
+npm run generate:feature order
+```
+
+This will create:
+- `src/services/orderService.ts`
+- `src/hooks/useOrder.ts`
+- `src/pages/OrderListPage.tsx`
+- `src/pages/OrderFormPage.tsx`
+
+Then:
+1. Add routes in `src/routes/index.tsx`
+2. Add sidebar menu in `src/components/SidebarLayout.tsx`
+3. Implement API calls in the service, update endpoints in `src/services/endpoints.ts`
+
+## Customization
+
+### Branding
+Update logo and brand name in `src/components/SidebarLayout.tsx`:
+- Logo icon: Change the Sparkles icon
+- Brand name: Change "Starter" text
+
+### Theme
+- Dark mode toggle available in Settings page
+- Colors: Update `tailwind.config.js`
+- Font: Currently using Outfit (Google Fonts)
+
+### Mock API
+- Enable/disable in `.env`: `VITE_ENABLE_MOCK=true/false`
+- Mock handlers: `src/mocks/handlers.ts`
+- Add new mock endpoints as needed
+
+## Tech Stack
+
+| Category | Technology |
+|----------|------------|
+| Build Tool | Vite + TypeScript |
+| Styling | Tailwind CSS v3 |
+| Typography | Google Font Outfit |
+| State (Server) | TanStack Query |
+| State (Client) | Zustand |
+| Routing | React Router v6 |
+| Forms | React Hook Form + Zod |
+| Charts | Recharts |
+| Mock API | MSW |
+| Notifications | Sonner |
+
+---
+
 # Agents Guide - ReactJS Lab
 
 This document provides context and guidelines for AI agents working on this project.

@@ -4,9 +4,7 @@ import { useLogout } from '@/hooks/useAuth'
 import { useAuthStore } from '@/store/authStore'
 
 import {
-  Package,
   LogOut,
-  ArrowLeftRight,
   LayoutDashboard,
   Menu,
   X,
@@ -15,7 +13,8 @@ import {
   User,
   Bell,
   Search,
-  Sparkles
+  Sparkles,
+  Settings
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -34,12 +33,12 @@ const navItems: NavItem[] = [
   {
     label: 'Profile',
     path: '/profile',
-    icon: <Package className="h-5 w-5" />,
+    icon: <User className="h-5 w-5" />,
   },
   {
     label: 'Settings',
     path: '/settings',
-    icon: <ArrowLeftRight className="h-5 w-5" />,
+    icon: <Settings className="h-5 w-5" />,
   },
 ]
 
